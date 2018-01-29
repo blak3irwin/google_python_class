@@ -27,6 +27,7 @@ def read_urls(filename):
   # +++your code here+++
   temp_urls = []
   img_urls = []
+  dedupe =[]
   file = open(filename,'rU')
   for line in file:
     #print line
@@ -34,13 +35,12 @@ def read_urls(filename):
     if match:
       temp_urls.append(match.group(1))
   for i in sorted(temp_urls):
-    img_urls.append('https://code.google.com'+i)
-  for i in img_urls:
-    fname_match=re.search(r'a-(\S+jpg)',i)
-    print fname_match.group(1)
-    fname= fname_match.group(1)
-    print img_urls
-    urllib.urlretrieve(i,fname)
+    if i not in dedupe:
+	  img_urls.append('https://code.google.com'+i)
+	  dedupe.append(i)
+  #for i in img_urls:
+    #print i
+  return img_urls
 
 def download_images(img_urls, dest_dir):
   """Given the urls already in the correct order, downloads
@@ -51,8 +51,36 @@ def download_images(img_urls, dest_dir):
   Creates the directory if necessary.
   """
   # +++your code here+++
+  index = open(dest_dir+'/index.html','w')
+  index.write('<html><body>')
+  dict = {}
+  for i in img_urls:
+	fname_match=re.search(r'a-(\S+jpg)',i)
+	special_match=re.search(r'-\w+-(\w+.jpg)',i)
+	#print fname_match.group(1)
+	if fname_match:
+		fname= fname_match.group(1)
+		#index.write('<img src="'+fname+'">')
+		#print 'fname is '+fname
+		dict[fname] = i
+	else:
+		#print 'exception'
+		if special_match:
+			fname = special_match.group(1)
+			#index.write('<img src="'+fname+'">')
+			dict[fname] = i
+	#print 'fname is '+fname
 
 
+
+  for key,value in sorted (dict.items()):
+	if os.path.exists(dest_dir+'/'+key):
+		print 'file exists, skipping'
+	else:
+		print 'downloading',key,' FROM: ',value
+		urllib.urlretrieve(value,dest_dir+'/'+key)
+	index.write('<img src="'+key+'">')
+  index.write('</body></html>')
 def main():
   args = sys.argv[1:]
 
@@ -65,13 +93,12 @@ def main():
     todir = args[1]
     del args[0:2]
 
-  #img_urls = read_urls(args[0])
-  read_urls(args[0])
-  #print img_urls
+  img_urls = read_urls(args[0])
+  #return_urls = read_urls(args[0])
   if todir:
     download_images(img_urls, todir)
-  #else:
-    #print '\n'.join(img_urls)
+  else:
+    print '\n'.join(img_urls)
 
 if __name__ == '__main__':
   main()
